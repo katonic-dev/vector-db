@@ -1,0 +1,125 @@
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: prod-milvus
+  namespace: vector-db
+  labels:
+    platform-component: vector-db
+spec:
+  components:
+    affinity:
+       nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: "katonic.ai/node-pool"
+              operator: In
+              values:
+              - platform
+    tolerations:
+       - key: "katonic.ai/node-pool"
+         operator: "Equal"
+         value: "platform"
+         effect: "NoSchedule"
+    image: milvusdb/milvus:v2.3.0
+    imageUpdateMode: rollingUpgrade
+    metricInterval: ""
+    paused: false
+    standalone:
+      paused: false
+      replicas: 1
+      serviceType: ClusterIP
+  config: {}
+  dependencies:
+    etcd:
+      endpoints:
+      - prod-milvus-etcd.vector-db:2379
+      external: false
+      inCluster:
+        deletionPolicy: Retain
+        values:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: "katonic.ai/node-pool"
+                    operator: In
+                    values:
+                    - platform
+          tolerations:
+          - key: "katonic.ai/node-pool"
+            operator: "Equal"
+            value: "platform"
+            effect: "NoSchedule"
+          auth:
+            rbac:
+              enabled: false
+          autoCompactionMode: revision
+          autoCompactionRetention: "1000"
+          enabled: true
+          extraEnvVars:
+          - name: ETCD_QUOTA_BACKEND_BYTES
+            value: "4294967296"
+          - name: ETCD_HEARTBEAT_INTERVAL
+            value: "500"
+          - name: ETCD_ELECTION_TIMEOUT
+            value: "2500"
+          image:
+            pullPolicy: IfNotPresent
+            repository: milvusdb/etcd
+            tag: 3.5.5-r2
+          name: etcd
+          pdb:
+            create: false
+          persistence:
+            accessMode: ReadWriteOnce
+            enabled: true
+            size: 32Gi
+          replicaCount: 1
+          service:
+            peerPort: 2380
+            port: 2379
+            type: ClusterIP
+    kafka:
+      external: false
+    msgStreamType: rocksmq
+    natsmq:
+      persistence:
+        persistentVolumeClaim:
+          spec: null
+    pulsar:
+      endpoint: ""
+      external: false
+    rocksmq:
+      persistence:
+        persistentVolumeClaim:
+          spec: null
+    storage:
+      external: false
+      inCluster:
+        deletionPolicy: Retain
+        values:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: "katonic.ai/node-pool"
+                    operator: In
+                    values:
+                    - platform
+          tolerations:
+          - key: "katonic.ai/node-pool"
+            operator: "Equal"
+            value: "platform"
+            effect: "NoSchedule"
+          mode: standalone
+          name: minio
+          persistence:
+            accessMode: ReadWriteOnce
+            enabled: true
+            existingClaim: ""
+            size: change-to-milvus-size
+      type: MinIO
+  mode: standalone
